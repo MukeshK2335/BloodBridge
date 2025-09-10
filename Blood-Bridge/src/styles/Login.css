@@ -1,0 +1,169 @@
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 2rem;
+  background-color: #f8f9fa;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 450px;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+/* Slider styles */
+.slider-container {
+  display: flex;
+  position: relative;
+  background-color: #f1f1f1;
+}
+
+.slider-button {
+  flex: 1;
+  padding: 1rem;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #888;
+  cursor: pointer;
+  transition: color 0.3s;
+  z-index: 1;
+}
+
+.slider-button.active {
+  color: white;
+}
+
+.slider-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 50%;
+  background-color: var(--primary-color, #e53935);
+  border-radius: 8px 8px 0 0; /* Match the card's border radius */
+  transition: transform 0.3s ease-in-out;
+  z-index: 0;
+}
+
+.slider-indicator.patient {
+  transform: translateX(100%);
+}
+
+.login-form-container {
+  padding: 2.5rem;
+}
+
+.login-form h2 {
+  text-align: center;
+  margin-bottom: 2rem;
+  font-size: 1.8rem;
+  color: #333;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.8rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+}
+
+.form-group input:focus {
+  border-color: var(--primary-color, #e53935);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.1);
+}
+
+.form-group input.error {
+  border-color: #e53935;
+}
+
+.error-message {
+  display: block;
+  color: #e53935;
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+}
+
+.form-actions {
+  margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.login-submit-btn {
+  background-color: var(--primary-color, #e53935);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.8rem 1.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.login-submit-btn:hover {
+  background-color: var(--primary-dark, #c62828);
+}
+
+.register-prompt {
+  text-align: center;
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.register-link {
+  color: var(--primary-color, #e53935);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.register-link:hover {
+  text-decoration: underline;
+}
+
+.back-link {
+  text-align: center;
+  color: #666;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.back-link:hover {
+  color: var(--primary-color, #e53935);
+}
+
+@media (max-width: 480px) {
+  .login-card {
+    border-radius: 0;
+    box-shadow: none;
+  }
+  
+  .login-form-container {
+    padding: 2rem 1.5rem;
+  }
+}
