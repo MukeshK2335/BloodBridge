@@ -6,6 +6,10 @@
   color: white; /* White text for contrast */
   font-family: 'Arial', sans-serif; /* Modern font */
   overflow-y: auto; /* Enable vertical scrolling if content overflows */
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
 }
 
 .sidebar-header {

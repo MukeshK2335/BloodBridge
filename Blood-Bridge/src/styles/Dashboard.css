@@ -187,6 +187,7 @@
 .donor-dashboard-content {
   flex-grow: 1;
   padding: 20px;
+  margin-left: 250px;
 }
 
 .donation-history-table {
