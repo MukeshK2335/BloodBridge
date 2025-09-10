@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
@@ -12,6 +12,7 @@ function Login() {
     password: ''
   });
   const [errors, setErrors] = useState({});
+  const navigate = useNavigate();
 
   const handleUserTypeChange = (type) => {
     setUserType(type);
@@ -58,7 +59,11 @@ function Login() {
         const userData = userDoc.data();
         if (userData.userType === userType) {
           alert(`Logged in successfully as a ${userType}!`);
-          // Redirect to a dashboard or home page
+          if (userType === 'donor') {
+            navigate('/donor-dashboard');
+          } else {
+            navigate('/patient-dashboard');
+          }
         } else {
           await signOut(auth);
           alert(`You are registered as a ${userData.userType}. Please login from the correct page.`);
