@@ -45,7 +45,6 @@ function AdminLogin() {
     }
 
     try {
-      try {
       await signInWithEmailAndPassword(auth, formData.email, formData.password);
       // If signInWithEmailAndPassword is successful, it means email and password are correct.
       // Directly navigate to admin dashboard.
@@ -56,15 +55,10 @@ function AdminLogin() {
       console.error("Error during admin login:", error);
       alert(`Admin Login failed: ${error.message}`);
     }
-    } catch (error) {
-      // 5. Handle and display any errors (e.g., wrong password, user not found)
-      console.error('Login error:', error.message);
-      alert(`Login failed: ${error.message}`);
-    }
   };
 
   return (
-    <div className="login-container">
+    <div className="login-container admin-background">
       <div className="login-card">
         <div className="login-form-container">
           <form className="login-form" onSubmit={handleSubmit} noValidate>

@@ -76,7 +76,7 @@ function Login() {
   };
 
   return (
-    <div className="login-container">
+    <div className={`login-container ${userType}-background`}>
       <div className="login-card">
         <div className="slider-container">
           <div className={`slider-button ${userType === 'donor' ? 'active' : ''}`} onClick={() => handleUserTypeChange('donor')}>

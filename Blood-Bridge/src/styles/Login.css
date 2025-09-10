@@ -167,3 +167,17 @@
     padding: 2rem 1.5rem;
   }
 }
+
+/* Backgrounds for different user types */
+.donor-background {
+  background-color: #e0f2f7; /* Light blue */
+}
+
+.patient-background {
+  background-color: #fffde7; /* Light yellow */
+}
+
+/* Admin Login Page Background */
+.admin-background {
+  background-color: #fce4ec; /* Light pink */
+}

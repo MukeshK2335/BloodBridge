@@ -19,6 +19,17 @@ const defaultCenter = {
   lng: -118.243683,
 }; // Default to Los Angeles if location not found
 
+const BLOOD_COMPATIBILITY = {
+  "A+": { "can_receive_from": ["A+", "A-", "O+", "O-"], "can_donate_to": ["A+", "AB+"] },
+  "A-": { "can_receive_from": ["A-", "O-"], "can_donate_to": ["A+", "A-", "AB+", "AB-"] },
+  "B+": { "can_receive_from": ["B+", "B-", "O+", "O-"], "can_donate_to": ["B+", "AB+"] },
+  "B-": { "can_receive_from": ["B-", "O-"], "can_donate_to": ["B+", "B-", "AB+", "AB-"] },
+  "AB+": { "can_receive_from": ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"], "can_donate_to": ["AB+"] },
+  "AB-": { "can_receive_from": ["A-", "B-", "AB-", "O-"], "can_donate_to": ["AB+", "AB-"] },
+  "O+": { "can_receive_from": ["O+", "O-"], "can_donate_to": ["O+", "A+", "B+", "AB+"] },
+  "O-": { "can_receive_from": ["O-"], "can_donate_to": ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] }
+};
+
 function DonorDashboard() {
   const [selectedView, setSelectedView] = useState('profile');
   const [donorProfile, setDonorProfile] = useState(null);
@@ -37,6 +48,19 @@ function DonorDashboard() {
     googleMapsApiKey: 'AIzaSyCykGquhe3x8hiwvFCGS6wXIDA-DQQFTH8', // Your Google Maps API Key. Consider using environment variables for security (e.env.REACT_APP_GOOGLE_MAPS_API_KEY)
     libraries: ['places'], // Required for Geocoding
   });
+
+  const filteredPatientRequests = useMemo(() => {
+    if (!donorProfile || !donorProfile.bloodGroup || !patientRequests.length) {
+      return [];
+    }
+
+    const donorBloodGroup = donorProfile.bloodGroup;
+    const canDonateTo = BLOOD_COMPATIBILITY[donorBloodGroup]?.can_donate_to || [];
+
+    return patientRequests.filter(request => 
+      canDonateTo.includes(request.bloodGroup)
+    );
+  }, [donorProfile, patientRequests]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -211,7 +235,7 @@ function DonorDashboard() {
         {selectedView === 'requests' && (
           <div className="requests-section">
             <h2>Blood Requests from Patients</h2>
-            {patientRequests.length > 0 ? (
+            {filteredPatientRequests.length > 0 ? (
               <table className="donation-history-table"> 
                 <thead>
                   <tr>
@@ -223,7 +247,7 @@ function DonorDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {patientRequests.map((request) => (
+                  {filteredPatientRequests.map((request) => (
                     <tr key={request.id}>
                       <td>{request.patientName}</td>
                       <td>{request.bloodGroup}</td>
@@ -235,7 +259,7 @@ function DonorDashboard() {
                 </tbody>
               </table>
             ) : (
-              <p>No blood requests available at the moment.</p>
+              <p>No blood requests available at the moment that match your blood group compatibility.</p>
             )}
           </div>
         )}
