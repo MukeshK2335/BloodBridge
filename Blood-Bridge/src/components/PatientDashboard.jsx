@@ -8,7 +8,8 @@ import profileImage from '../assets/image.png'; // Assuming you have a default p
 
 function PatientDashboard() {
   const [patientProfile, setPatientProfile] = useState(null);
-  const [myRequests, setMyRequests] = useState([]);
+  const [pendingRequests, setPendingRequests] = useState([]); // Renamed from myRequests
+  const [acceptedRequests, setAcceptedRequests] = useState([]); // New state for accepted requests
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
@@ -50,8 +51,14 @@ function PatientDashboard() {
           // Fetch Patient's Own Requests
           const q = query(collection(db, 'requests'), where('patientId', '==', user.uid));
           const querySnapshot = await getDocs(q);
-          const requests = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          setMyRequests(requests);
+          const allRequests = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          
+          // Separate requests into pending and accepted
+          const pending = allRequests.filter(req => req.status !== 'accepted');
+          const accepted = allRequests.filter(req => req.status === 'accepted');
+
+          setPendingRequests(pending);
+          setAcceptedRequests(accepted);
 
         } catch (err) {
           console.error("Error fetching data:", err);
@@ -101,6 +108,7 @@ function PatientDashboard() {
         patientId: user.uid,
         patientName: patientProfile ? patientProfile.name : 'Unknown', // Use patient's name from profile
         timestamp: new Date(),
+        status: 'pending', // Set initial status to pending
       });
       alert('Blood request submitted successfully!');
       setRequestForm({
@@ -113,8 +121,11 @@ function PatientDashboard() {
       // Re-fetch requests to update the list
       const q = query(collection(db, 'requests'), where('patientId', '==', user.uid));
       const querySnapshot = await getDocs(q);
-      const requests = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setMyRequests(requests);
+      const allRequests = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const pending = allRequests.filter(req => req.status !== 'accepted');
+      const accepted = allRequests.filter(req => req.status === 'accepted');
+      setPendingRequests(pending);
+      setAcceptedRequests(accepted);
 
     } catch (err) {
       console.error("Error submitting request:", err);
@@ -205,7 +216,7 @@ function PatientDashboard() {
 
             <div className="requests-section" style={{ marginTop: '30px' }}>
               <h2>Your Submitted Requests</h2>
-              {myRequests.length > 0 ? (
+              {pendingRequests.length > 0 ? (
                 <table className="donation-history-table"> {/* Reusing table style */}
                   <thead>
                     <tr>
@@ -217,7 +228,7 @@ function PatientDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {myRequests.map((request) => (
+                    {pendingRequests.map((request) => (
                       <tr key={request.id}>
                         <td>{request.bloodGroup}</td>
                         <td>{request.quantity}</td>
@@ -230,6 +241,38 @@ function PatientDashboard() {
                 </table>
               ) : (
                 <p>You have not submitted any blood requests yet.</p>
+              )}
+            </div>
+
+            <div className="requests-section" style={{ marginTop: '30px' }}>
+              <h2>Accepted Requests</h2>
+              {acceptedRequests.length > 0 ? (
+                <table className="donation-history-table"> 
+                  <thead>
+                    <tr>
+                      <th>Blood Group</th>
+                      <th>Quantity</th>
+                      <th>Hospital</th>
+                      <th>Donor Name</th>
+                      <th>Donor Blood Group</th>
+                      <th>Donor Contact</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {acceptedRequests.map((request) => (
+                      <tr key={request.id}>
+                        <td>{request.bloodGroup}</td>
+                        <td>{request.quantity}</td>
+                        <td>{request.hospital}</td>
+                        <td>{request.donorName || 'N/A'}</td>
+                        <td>{request.donorBloodGroup || 'N/A'}</td>
+                        <td>{request.donorContact || 'N/A'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p>No accepted blood requests yet.</p>
               )}
             </div>
           </>

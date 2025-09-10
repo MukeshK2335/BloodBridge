@@ -3,7 +3,7 @@ import Sidebar from './Sidebar';
 import '../styles/Dashboard.css';
 import profileImage from '../assets/image.png'; // Assuming you have a default profile image
 import { auth, db } from '../firebase';
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { GoogleMap, useLoadScript, Marker } from '@react-google-maps/api';
 import PosterModal from './PosterModal'; // Import PosterModal
@@ -151,6 +151,32 @@ function DonorDashboard() {
     setShowPosterModal(true);
   };
 
+  const handleAcceptRequest = async (requestId, patientId) => {
+    if (!user || !donorProfile) {
+      console.error("User not logged in or donor profile not loaded.");
+      return;
+    }
+
+    try {
+      const requestRef = doc(db, 'requests', requestId);
+      await updateDoc(requestRef, {
+        status: 'accepted',
+        donorId: user.uid,
+        donorName: donorProfile.name,
+        donorBloodGroup: donorProfile.bloodGroup,
+        donorContact: donorProfile.phoneNumber, // Assuming phoneNumber is available in donorProfile
+      });
+
+      // Optionally, remove the accepted request from the local state
+      setPatientRequests(prevRequests => prevRequests.filter(req => req.id !== requestId));
+
+      alert('Request accepted successfully! Patient will be notified.');
+    } catch (error) {
+      console.error("Error accepting request:", error);
+      alert('Failed to accept request. Please try again.');
+    }
+  };
+
   if (loading || !isLoaded) {
     return <div className="dashboard-container">Loading dashboard and map...</div>;
   }
@@ -244,6 +270,7 @@ function DonorDashboard() {
                     <th>Quantity</th>
                     <th>Hospital</th>
                     <th>Contact</th>
+                    <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -254,6 +281,14 @@ function DonorDashboard() {
                       <td>{request.quantity}</td>
                       <td>{request.hospital}</td>
                       <td>{request.contact}</td>
+                      <td>
+                        <button 
+                          className="primary-button"
+                          onClick={() => handleAcceptRequest(request.id, request.patientId)}
+                        >
+                          Accept
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
