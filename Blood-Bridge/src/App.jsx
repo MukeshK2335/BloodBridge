@@ -1,4 +1,4 @@
-import { Routes, Route, useNavigate } from 'react-router-dom'
+import { Routes, Route, useNavigate, Navigate } from 'react-router-dom'
 import React, { useEffect, useState } from 'react';
 import { auth, db } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -6,7 +6,7 @@ import { doc, getDoc } from 'firebase/firestore';
 
 import './App.css'
 import Register from './components/Register'
-import Login from '././components/Login'
+import Login from './components/Login'
 import LandingPage from './components/LandingPage'
 import DonorDashboard from './components/DonorDashboard'
 import PatientDashboard from './components/PatientDashboard'
@@ -23,14 +23,22 @@ function App() {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
-        const userDocRef = doc(db, 'users', currentUser.uid);
-        const userDocSnap = await getDoc(userDocRef);
-        if (userDocSnap.exists()) {
-          setUserRole(userDocSnap.data().userType);
+        // Check if it's the hardcoded admin email
+        const TEMP_ADMIN_EMAIL = 'admin@linkeredge.com'; // Must match the one in AdminLogin.jsx
+        if (currentUser.email === TEMP_ADMIN_EMAIL) {
+          setUserRole('admin'); // Assume admin role for hardcoded admin
         } else {
-          // Handle case where user exists in auth but not in Firestore (e.g., new registration)
-          console.warn("User profile not found in Firestore.");
-          setUserRole(null); // Or a default role
+          const userDocRef = doc(db, 'users', currentUser.uid);
+          const userDocSnap = await getDoc(userDocRef);
+          if (userDocSnap.exists()) {
+            setUserRole(userDocSnap.data().userType);
+          } else {
+            console.warn(`User profile for UID: ${currentUser.uid} not found in Firestore. Please ensure the user has a corresponding document in the 'users' collection.`);
+            // Optionally, you could force a logout here if a profile is mandatory for app usage
+            // signOut(auth);
+            // navigate('/register');
+            setUserRole(null); // Or a default role
+          }
         }
       } else {
         setUser(null);
@@ -44,30 +52,21 @@ function App() {
   useEffect(() => {
     if (!loading) {
       if (user) {
-        // User is logged in, redirect based on role
-        if (userRole === 'admin') {
-          navigate('/admin-dashboard');
-        } else if (userRole === 'donor') {
+        // Only redirect non-admin users based on role
+        if (userRole === 'donor') {
           navigate('/donor-dashboard');
         } else if (userRole === 'patient') {
           navigate('/patient-dashboard');
-        } else {
-          // If user has no specific role or an unknown role, redirect to login
+        } else if (userRole !== 'admin') { // If user is logged in but not admin, donor, or patient
           navigate('/login');
         }
-      } else {
-        // No user logged in, allow access to public routes
-        // If current path is a dashboard, redirect to login
-        const publicPaths = ['/', '/login', '/register', '/admin-login'];
-        if (!publicPaths.includes(window.location.pathname)) {
-          navigate('/login');
-        }
+        // Admin redirection is handled by AdminLogin.jsx
       }
     }
   }, [loading, user, userRole, navigate]);
 
   if (loading) {
-    return <div className="app-loading">Loading application...</div>; // Simple loading indicator
+    return <div className="app-loading">Loading application...</div>;
   }
 
   return (
@@ -78,10 +77,8 @@ function App() {
         <Route path="/admin-login" element={<AdminLogin />} />
         <Route path="/" element={<LandingPage />} />
 
-        {/* Protected Routes */}
-        {user && userRole === 'admin' && (
-          <Route path="/admin-dashboard" element={<AdminDashboard />} />
-        )}
+        {/* TEMPORARY: Admin Dashboard accessible without authentication for testing */}
+        <Route path="/admin-dashboard" element={<AdminDashboard />} />
         {user && userRole === 'donor' && (
           <Route path="/donor-dashboard" element={<DonorDashboard />} />
         )}
@@ -89,10 +86,9 @@ function App() {
           <Route path="/patient-dashboard" element={<PatientDashboard />} />
         )}
 
-        {/* Fallback for unauthenticated or unauthorized access to protected routes */}
-        {/* This route will catch any path not matched by the above and redirect to login if user is not authenticated */}
-        {!user && <Route path="*" element={<Login />} />}
-        {user && !userRole && <Route path="*" element={<Login />} />}
+        {(!user || (user && !userRole)) && (
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        )}
 
       </Routes>
     </div>

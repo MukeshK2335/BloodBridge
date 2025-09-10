@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { auth } from '../firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import '../styles/Login.css'; // Reusing login styles
+import { auth, db } from '../firebase';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import '../styles/Login.css';
 
 function AdminLogin() {
   const [formData, setFormData] = useState({
@@ -26,7 +27,7 @@ function AdminLogin() {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Email is invalid';
-    n}
+    }
     if (!formData.password) {
       newErrors.password = 'Password is required';
     }
@@ -36,25 +37,29 @@ function AdminLogin() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const validationErrors = validate();
+    setErrors(validationErrors);
+
+    // If there are validation errors, stop the submission
     if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
       return;
     }
 
     try {
-      // For admin login, we'll assume a specific admin email/password or a role check
-      // For now, let's just sign in and then you'd typically check a user's role in Firestore
+      try {
       await signInWithEmailAndPassword(auth, formData.email, formData.password);
-      
-      // In a real application, you would fetch the user's role from Firestore
-      // and only navigate to admin dashboard if they have admin privileges.
-      // For this example, we'll assume anyone logging in via this form is an admin.
+      // If signInWithEmailAndPassword is successful, it means email and password are correct.
+      // Directly navigate to admin dashboard.
       alert('Admin Login successful!');
-      navigate('/admin-dashboard'); // Navigate to a new admin dashboard route
+      navigate('/admin-dashboard');
 
     } catch (error) {
       console.error("Error during admin login:", error);
       alert(`Admin Login failed: ${error.message}`);
+    }
+    } catch (error) {
+      // 5. Handle and display any errors (e.g., wrong password, user not found)
+      console.error('Login error:', error.message);
+      alert(`Login failed: ${error.message}`);
     }
   };
 

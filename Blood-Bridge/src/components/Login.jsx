@@ -59,11 +59,7 @@ function Login() {
         const userData = userDoc.data();
         if (userData.userType === userType) {
           alert(`Logged in successfully as a ${userType}!`);
-          if (userType === 'donor') {
-            navigate('/donor-dashboard');
-          } else {
-            navigate('/patient-dashboard');
-          }
+          // No explicit navigation here. App.jsx will handle redirection based on userRole.
         } else {
           await signOut(auth);
           alert(`You are registered as a ${userData.userType}. Please login from the correct page.`);
