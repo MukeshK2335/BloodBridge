@@ -23,7 +23,8 @@ const defaultCenter = {
 
 function PatientDashboard() {
   const [patientProfile, setPatientProfile] = useState(null);
-  const [pendingRequests, setPendingRequests] = useState([]); // Renamed from myRequests
+  const [mySubmittedRequests, setMySubmittedRequests] = useState([]); // Combined pending and completed requests
+  const [pendingRequests, setPendingRequests] = useState([]); // Still needed for form submission logic
   const [acceptedRequests, setAcceptedRequests] = useState([]); // New state for accepted requests
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -70,12 +71,14 @@ function PatientDashboard() {
           const querySnapshot = await getDocs(q);
           const allRequests = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           
-          // Separate requests into pending and accepted
-          const pending = allRequests.filter(req => req.status !== 'accepted');
+          // Separate requests into pending, accepted, and completed
+          const pending = allRequests.filter(req => req.status === 'pending');
           const accepted = allRequests.filter(req => req.status === 'accepted');
+          const completed = allRequests.filter(req => req.status === 'completed');
 
-          setPendingRequests(pending);
+          setPendingRequests(pending); // Keep pending for now, will rename later
           setAcceptedRequests(accepted);
+          setMySubmittedRequests([...pending, ...completed]); // Combine pending and completed for display
 
           // Fetch all donors
           const donorsQuery = query(collection(db, 'users'), where('userType', '==', 'donor'));
@@ -145,10 +148,14 @@ function PatientDashboard() {
       const q = query(collection(db, 'requests'), where('patientId', '==', user.uid));
       const querySnapshot = await getDocs(q);
       const allRequests = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const pending = allRequests.filter(req => req.status !== 'accepted');
+      
+      const pending = allRequests.filter(req => req.status === 'pending');
       const accepted = allRequests.filter(req => req.status === 'accepted');
+      const completed = allRequests.filter(req => req.status === 'completed');
+
       setPendingRequests(pending);
       setAcceptedRequests(accepted);
+      setMySubmittedRequests([...pending, ...completed]); // Update mySubmittedRequests here
 
     } catch (err) {
       console.error("Error submitting request:", err);
@@ -341,6 +348,11 @@ function PatientDashboard() {
   
       // 3. Update local state to remove the marked request from acceptedRequests
       setAcceptedRequests(prevRequests => prevRequests.filter(req => req.id !== requestId));
+
+      // 4. Update mySubmittedRequests to reflect the completed status
+      setMySubmittedRequests(prevRequests => prevRequests.map(req =>
+        req.id === requestId ? { ...req, status: 'completed' } : req
+      ));
   
       alert('Request marked as done and donor history updated!');
     } catch (error) {
@@ -429,7 +441,7 @@ function PatientDashboard() {
 
             <div className="requests-section" style={{ marginTop: '30px' }}>
               <h2>Your Submitted Requests</h2>
-              {pendingRequests.length > 0 ? (
+              {mySubmittedRequests.length > 0 ? (
                 <table className="donation-history-table"> {/* Reusing table style */}
                   <thead>
                     <tr>
@@ -438,16 +450,21 @@ function PatientDashboard() {
                       <th>Hospital</th>
                       <th>Contact</th>
                       <th>Date Submitted</th>
+                      <th>Status</th> {/* New Status column */}
                     </tr>
                   </thead>
                   <tbody>
-                    {pendingRequests.map((request) => (
+                    {mySubmittedRequests.map((request) => (
                       <tr key={request.id}>
                         <td>{request.bloodGroup}</td>
                         <td>{request.quantity}</td>
                         <td>{request.hospital}</td>
                         <td>{request.contact}</td>
                         <td>{request.timestamp ? new Date(request.timestamp.toDate()).toLocaleString() : 'N/A'}</td>
+                        <td>
+                          {request.status === 'pending' && <span className="request-status pending">Not Yet Done</span>}
+                          {request.status === 'completed' && <span className="request-status completed">Done</span>}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
