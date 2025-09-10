@@ -77,6 +77,12 @@ function PatientDashboard() {
           setPendingRequests(pending);
           setAcceptedRequests(accepted);
 
+          // Fetch all donors
+          const donorsQuery = query(collection(db, 'users'), where('userType', '==', 'donor'));
+          const donorsSnapshot = await getDocs(donorsQuery);
+          const donorsData = donorsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          setAllDonorLocations(donorsData); // Store raw donor data for geocoding
+
         } catch (err) {
           console.error("Error fetching data:", err);
           setError('Failed to fetch data.');
@@ -164,6 +170,9 @@ function PatientDashboard() {
   });
 
   const [donorLocationsMap, setDonorLocationsMap] = useState({}); // To store geocoded locations
+  const [patientGeocodedLocation, setPatientGeocodedLocation] = useState(null);
+  const [allDonorLocations, setAllDonorLocations] = useState([]); // New state for all donor locations
+  const [geocodedAllDonorLocations, setGeocodedAllDonorLocations] = useState({});
 
   useEffect(() => {
     const geocodeLocations = async () => {
@@ -196,6 +205,116 @@ function PatientDashboard() {
 
     geocodeLocations();
   }, [acceptedRequests, isLoaded]);
+
+  useEffect(() => {
+    const geocodePatientLocation = async () => {
+      if (patientProfile && patientProfile.location && isLoaded && !patientGeocodedLocation) {
+        try {
+          const response = await fetch(
+            `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(patientProfile.location)}&key=AIzaSyCykGquhe3x8hiwvFCGS6wXIDA-DQQFTH8`
+          );
+          const data = await response.json();
+
+          if (data.results && data.results.length > 0) {
+            const { lat, lng } = data.results[0].geometry.location;
+            setPatientGeocodedLocation({ lat, lng });
+          } else {
+            console.warn(`Could not find location for patient: ${patientProfile.location}`);
+            setPatientGeocodedLocation(defaultCenter); // Fallback
+          }
+        } catch (err) {
+          console.error("Error geocoding patient address:", err);
+          setPatientGeocodedLocation(defaultCenter); // Fallback
+        }
+      }
+    };
+
+    geocodePatientLocation();
+  }, [patientProfile, isLoaded, patientGeocodedLocation]);
+
+  useEffect(() => {
+    const geocodeAllDonors = async () => {
+      if (isLoaded && allDonorLocations.length > 0) {
+        const newGeocodedAllDonorLocations = {};
+        for (const donor of allDonorLocations) {
+          if (donor.location && !geocodedAllDonorLocations[donor.id]) {
+            try {
+              const response = await fetch(
+                `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(donor.location)}&key=AIzaSyCykGquhe3x8hiwvFCGS6wXIDA-DQQFTH8`
+              );
+              const data = await response.json();
+
+              if (data.results && data.results.length > 0) {
+                const { lat, lng } = data.results[0].geometry.location;
+                newGeocodedAllDonorLocations[donor.id] = { lat, lng };
+              } else {
+                console.warn(`Could not find location for donor: ${donor.location}`);
+                newGeocodedAllDonorLocations[donor.id] = defaultCenter; // Fallback
+              }
+            } catch (err) {
+              console.error("Error geocoding donor address:", err);
+              newGeocodedAllDonorLocations[donor.id] = defaultCenter; // Fallback
+            }
+          }
+        }
+        setGeocodedAllDonorLocations(prev => ({ ...prev, ...newGeocodedAllDonorLocations }));
+      }
+    };
+
+    geocodeAllDonors();
+  }, [allDonorLocations, isLoaded]);
+
+    const allLocationsForHeatmap = useMemo(() => {
+    const locations = [];
+    const addedLocationIds = new Set(); // To prevent duplicate markers
+
+    // Add patient's location
+    if (patientGeocodedLocation) {
+      locations.push({
+        id: 'patient',
+        position: patientGeocodedLocation,
+        type: 'patient',
+        name: patientProfile?.name || 'Current Patient',
+      });
+      addedLocationIds.add('patient');
+    }
+
+    // Add accepted donor locations
+    for (const requestId in donorLocationsMap) {
+      const donorLocation = donorLocationsMap[requestId];
+      const acceptedRequest = acceptedRequests.find(req => req.id === requestId);
+      if (donorLocation && acceptedRequest && !addedLocationIds.has(`donor-${acceptedRequest.donorId}`)) { // Use donorId for uniqueness
+        locations.push({
+          id: `donor-${acceptedRequest.donorId}`, // Use donorId for unique ID
+          position: donorLocation,
+          type: 'donor',
+          name: acceptedRequest.donorName || 'Donor',
+          bloodGroup: acceptedRequest.donorBloodGroup,
+        });
+        addedLocationIds.add(`donor-${acceptedRequest.donorId}`);
+      }
+    }
+
+    // Add all other donor locations (not already added as accepted donors)
+    for (const donorId in geocodedAllDonorLocations) {
+      if (!addedLocationIds.has(`donor-${donorId}`)) {
+        const donorLocation = geocodedAllDonorLocations[donorId];
+        const donorData = allDonorLocations.find(d => d.id === donorId);
+        if (donorLocation && donorData) {
+          locations.push({
+            id: `donor-${donorId}`,
+            position: donorLocation,
+            type: 'donor',
+            name: donorData.name || 'Donor',
+            bloodGroup: donorData.bloodGroup,
+          });
+          addedLocationIds.add(`donor-${donorId}`);
+        }
+      }
+    }
+
+    return locations;
+  }, [patientGeocodedLocation, donorLocationsMap, acceptedRequests, patientProfile, geocodedAllDonorLocations, allDonorLocations]);
 
   const handleMarkAsDone = async (requestId, donorId, patientId, hospital) => {
     if (!user) {
@@ -245,7 +364,7 @@ function PatientDashboard() {
   const patientMenuItems = [
     { id: 'profile', label: 'Profile' },
     { id: 'requests', label: 'My Requests' }, // Added Donor View
-    { id: 'heatmap', label: 'Detailed Heat Map' },
+    { id: 'heatmap', label: 'Donar View' },
   ];
 
   return (
@@ -396,7 +515,7 @@ function PatientDashboard() {
         )}
         {selectedView === 'heatmap' && (
           <div className="heatmap-section">
-            <BloodHeatMap />
+            <BloodHeatMap locations={allLocationsForHeatmap} />
           </div>
         )}
       </div>
