@@ -5,7 +5,7 @@ import profileImage from '../assets/image.png'; // Assuming you have a default p
 import { auth, db } from '../firebase';
 import { doc, getDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import { GoogleMap, useLoadScript, Marker } from '@react-google-maps/api';
+import { GoogleMap, useLoadScript, Marker, InfoWindow } from '@react-google-maps/api'; // Added InfoWindow
 import PosterModal from './PosterModal'; // Import PosterModal
 
 const mapContainerStyle = {
@@ -43,6 +43,8 @@ function DonorDashboard() {
   const [mapError, setMapError] = useState(null);
   const [showPosterModal, setShowPosterModal] = useState(false); // State for poster modal
   const [selectedPosterUrl, setSelectedPosterUrl] = useState(''); // State for selected poster URL
+  const [nearbyBloodNeeds, setNearbyBloodNeeds] = useState([]); // New state for nearby blood needs
+  const [selectedMarker, setSelectedMarker] = useState(null); // New state for selected marker
 
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: 'AIzaSyCykGquhe3x8hiwvFCGS6wXIDA-DQQFTH8', // Your Google Maps API Key. Consider using environment variables for security (e.env.REACT_APP_GOOGLE_MAPS_API_KEY)
@@ -89,6 +91,7 @@ function DonorDashboard() {
           const donationsQuery = query(collection(db, 'donations'), where('donorId', '==', user.uid));
           const donationSnapshot = await getDocs(donationsQuery);
           const history = donationSnapshot.docs.map(doc => doc.data());
+          console.log("Fetched donation history:", history);
           setDonationHistory(history);
 
           // Fetch Patient Requests (assuming a top-level 'requests' collection)
@@ -305,28 +308,42 @@ function DonorDashboard() {
           <div className="campaign-section">
             <h2>Blood Donation Campaigns</h2>
             {campaigns.length > 0 ? (
-              <div className="campaigns-list">
-                {campaigns.map((campaign) => (
-                  <div key={campaign.id} className="campaign-card">
-                    {campaign.posterURL && (
-                      <img src={campaign.posterURL} alt={campaign.name} className="campaign-poster" />
-                    )}
-                    <h3>{campaign.name}</h3>
-                    <p><strong>Date:</strong> {campaign.date}</p>
-                    <p><strong>Location:</strong> {campaign.location}</p>
-                    {campaign.description && <p>{campaign.description}</p>}
-                    {campaign.posterURL && (
-                      <button 
-                        className="primary-button"
-                        onClick={() => handleViewPoster(campaign.posterURL)}
-                        style={{ marginTop: '15px', alignSelf: 'flex-start' }} /* Added inline style for spacing */
-                      >
-                        View Poster
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
+              <table className="campaigns-table"> {/* Using a new class name for campaigns table */}
+                <thead>
+                  <tr>
+                    <th>Campaign Name</th>
+                    <th>Date</th>
+                    <th>Location</th>
+                    <th>Segmented</th>
+                    <th>Description</th>
+                    <th>Poster</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {campaigns.map((campaign) => (
+                    <tr key={campaign.id}>
+                      <td>{campaign.name}</td>
+                      <td>{campaign.date}</td>
+                      <td>{campaign.location}</td>
+                      <td>{campaign.segmented || 'N/A'}</td>
+                      <td>{campaign.description}</td>
+                      <td>
+                        {campaign.posterURL && (
+                          <img src={campaign.posterURL} alt={campaign.name} className="campaign-poster-thumbnail" />
+                        )}
+                        {campaign.posterURL && (
+                          <button
+                            className="primary-button"
+                            onClick={() => handleViewPoster(campaign.posterURL)}
+                          >
+                            View Poster
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}}
+                </tbody>
+              </table>
             ) : (
               <p>No blood donation campaigns available at the moment.</p>
             )}

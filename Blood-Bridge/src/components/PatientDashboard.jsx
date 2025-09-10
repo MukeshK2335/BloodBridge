@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { auth, db } from '../firebase';
-import { doc, getDoc, collection, addDoc, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, collection, addDoc, query, where, getDocs, updateDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 import Sidebar from './Sidebar'; // Import Sidebar
 import '../styles/Dashboard.css'; // Reusing dashboard styles
 import profileImage from '../assets/image.png'; // Assuming you have a default profile image
 import { GoogleMap, useLoadScript, Marker } from '@react-google-maps/api';
+import BloodHeatMap from './BloodHeatMap'; // Import BloodHeatMap
 
 const mapContainerStyle = {
   width: '100%',
@@ -27,6 +29,8 @@ function PatientDashboard() {
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
   const [selectedView, setSelectedView] = useState('profile'); // New state for selected view
+
+  const navigate = useNavigate(); // Initialize useNavigate
 
   const [requestForm, setRequestForm] = useState({
     bloodGroup: '',
@@ -147,7 +151,11 @@ function PatientDashboard() {
   };
 
   const handleSelectView = (view) => {
-    setSelectedView(view);
+    if (view === 'donor-view') {
+      navigate('/donor-dashboard'); // Navigate to donor dashboard
+    } else {
+      setSelectedView(view);
+    }
   };
 
   const { isLoaded, loadError } = useLoadScript({
@@ -189,6 +197,39 @@ function PatientDashboard() {
     geocodeLocations();
   }, [acceptedRequests, isLoaded]);
 
+  const handleMarkAsDone = async (requestId, donorId, patientId, hospital) => {
+    if (!user) {
+      alert('You must be logged in to mark a request as done.');
+      return;
+    }
+  
+    try {
+      // 1. Update request status to 'completed'
+      const requestRef = doc(db, 'requests', requestId);
+      await updateDoc(requestRef, {
+        status: 'completed',
+      });
+  
+      // 2. Add entry to donor's donation history
+      const donationDocRef = await addDoc(collection(db, 'donations'), {
+        donorId: donorId,
+        patientId: patientId,
+        date: new Date().toISOString().split('T')[0], // Current date in YYYY-MM-DD format
+        hospital: hospital,
+        requestId: requestId, // Link to the original request
+      });
+      console.log("Donation record added with ID:", donationDocRef.id);
+  
+      // 3. Update local state to remove the marked request from acceptedRequests
+      setAcceptedRequests(prevRequests => prevRequests.filter(req => req.id !== requestId));
+  
+      alert('Request marked as done and donor history updated!');
+    } catch (error) {
+      console.error("Error marking request as done:", error);
+      alert('Failed to mark request as done. Please try again.');
+    }
+  };
+
   if (loading || !isLoaded) {
     return <div className="dashboard-container">Loading dashboard and map...</div>;
   }
@@ -203,7 +244,8 @@ function PatientDashboard() {
 
   const patientMenuItems = [
     { id: 'profile', label: 'Profile' },
-    { id: 'requests', label: 'My Requests' },
+    { id: 'requests', label: 'My Requests' }, // Added Donor View
+    { id: 'heatmap', label: 'Detailed Heat Map' },
   ];
 
   return (
@@ -309,6 +351,7 @@ function PatientDashboard() {
                       <th>Donor Blood Group</th>
                       <th>Donor Contact</th>
                       <th>Location</th>
+                      <th>Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -333,6 +376,14 @@ function PatientDashboard() {
                             request.donorLocation || 'N/A'
                           )}
                         </td>
+                        <td>
+                          <button
+                            className="primary-button"
+                            onClick={() => handleMarkAsDone(request.id, request.donorId, user.uid, request.hospital)}
+                          >
+                            Mark as Done
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -342,6 +393,11 @@ function PatientDashboard() {
               )}
             </div>
           </>
+        )}
+        {selectedView === 'heatmap' && (
+          <div className="heatmap-section">
+            <BloodHeatMap />
+          </div>
         )}
       </div>
     </div>
