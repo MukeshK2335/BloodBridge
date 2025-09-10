@@ -1,10 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { auth, db } from '../firebase';
 import { doc, getDoc, collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import Sidebar from './Sidebar'; // Import Sidebar
 import '../styles/Dashboard.css'; // Reusing dashboard styles
 import profileImage from '../assets/image.png'; // Assuming you have a default profile image
+import { GoogleMap, useLoadScript, Marker } from '@react-google-maps/api';
+
+const mapContainerStyle = {
+  width: '100%',
+  height: '200px', // Smaller map for display in table
+  marginTop: '10px',
+  marginBottom: '10px',
+};
+
+const defaultCenter = {
+  lat: 34.052235,
+  lng: -118.243683,
+}; // Default to Los Angeles if location not found
 
 function PatientDashboard() {
   const [patientProfile, setPatientProfile] = useState(null);
@@ -137,12 +150,51 @@ function PatientDashboard() {
     setSelectedView(view);
   };
 
-  if (loading) {
-    return <div className="dashboard-container">Loading dashboard...</div>;
+  const { isLoaded, loadError } = useLoadScript({
+    googleMapsApiKey: 'AIzaSyCykGquhe3x8hiwvFCGS6wXIDA-DQQFTH8', // Your Google Maps API Key
+    libraries: ['places'], // Required for Geocoding
+  });
+
+  const [donorLocationsMap, setDonorLocationsMap] = useState({}); // To store geocoded locations
+
+  useEffect(() => {
+    const geocodeLocations = async () => {
+      if (isLoaded && acceptedRequests.length > 0) {
+        const newDonorLocationsMap = {};
+        for (const request of acceptedRequests) {
+          if (request.donorLocation && !donorLocationsMap[request.id]) {
+            try {
+              const response = await fetch(
+                `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(request.donorLocation)}&key=AIzaSyCykGquhe3x8hiwvFCGS6wXIDA-DQQFTH8`
+              );
+              const data = await response.json();
+
+              if (data.results && data.results.length > 0) {
+                const { lat, lng } = data.results[0].geometry.location;
+                newDonorLocationsMap[request.id] = { lat, lng };
+              } else {
+                console.warn(`Could not find location for: ${request.donorLocation}`);
+                newDonorLocationsMap[request.id] = defaultCenter; // Fallback
+              }
+            } catch (err) {
+              console.error("Error geocoding address:", err);
+              newDonorLocationsMap[request.id] = defaultCenter; // Fallback
+            }
+          }
+        }
+        setDonorLocationsMap(prev => ({ ...prev, ...newDonorLocationsMap }));
+      }
+    };
+
+    geocodeLocations();
+  }, [acceptedRequests, isLoaded]);
+
+  if (loading || !isLoaded) {
+    return <div className="dashboard-container">Loading dashboard and map...</div>;
   }
 
-  if (error) {
-    return <div className="dashboard-container">Error: {error}</div>;
+  if (error || loadError) {
+    return <div className="dashboard-container">Error: {error || loadError.message}</div>;
   }
 
   if (!user) {
@@ -256,6 +308,7 @@ function PatientDashboard() {
                       <th>Donor Name</th>
                       <th>Donor Blood Group</th>
                       <th>Donor Contact</th>
+                      <th>Location</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -267,6 +320,19 @@ function PatientDashboard() {
                         <td>{request.donorName || 'N/A'}</td>
                         <td>{request.donorBloodGroup || 'N/A'}</td>
                         <td>{request.donorContact || 'N/A'}</td>
+                        <td>
+                          {request.donorLocation && donorLocationsMap[request.id] ? (
+                            <GoogleMap
+                              mapContainerStyle={mapContainerStyle}
+                              center={donorLocationsMap[request.id]}
+                              zoom={10}
+                            >
+                              <Marker position={donorLocationsMap[request.id]} />
+                            </GoogleMap>
+                          ) : (
+                            request.donorLocation || 'N/A'
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

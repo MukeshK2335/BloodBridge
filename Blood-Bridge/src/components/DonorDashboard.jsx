@@ -92,7 +92,8 @@ function DonorDashboard() {
           setDonationHistory(history);
 
           // Fetch Patient Requests (assuming a top-level 'requests' collection)
-          const requestsSnapshot = await getDocs(collection(db, 'requests'));
+          const requestsQuery = query(collection(db, 'requests'), where('status', '==', 'pending'));
+          const requestsSnapshot = await getDocs(requestsQuery);
           const requests = requestsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           setPatientRequests(requests);
 
@@ -165,6 +166,7 @@ function DonorDashboard() {
         donorName: donorProfile.name,
         donorBloodGroup: donorProfile.bloodGroup,
         donorContact: donorProfile.phoneNumber, // Assuming phoneNumber is available in donorProfile
+        donorLocation: donorProfile.location, // Store donor's location
       });
 
       // Optionally, remove the accepted request from the local state
