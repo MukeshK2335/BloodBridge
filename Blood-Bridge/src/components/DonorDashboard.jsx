@@ -7,6 +7,8 @@ import { doc, getDoc, collection, query, where, getDocs, updateDoc } from 'fireb
 import { onAuthStateChanged } from 'firebase/auth';
 import { GoogleMap, useLoadScript, Marker, InfoWindow } from '@react-google-maps/api'; // Added InfoWindow
 import PosterModal from './PosterModal'; // Import PosterModal
+import UploadDetailsModal from './UploadDetailsModal';
+
 
 const mapContainerStyle = {
   width: '100%',
@@ -30,7 +32,10 @@ const BLOOD_COMPATIBILITY = {
   "O-": { "can_receive_from": ["O-"], "can_donate_to": ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] }
 };
 
+const libraries = ['places'];
+
 function DonorDashboard() {
+  console.log("Forcing a re-render of DonorDashboard");
   const [selectedView, setSelectedView] = useState('profile');
   const [donorProfile, setDonorProfile] = useState(null);
   const [donationHistory, setDonationHistory] = useState([]);
@@ -45,10 +50,11 @@ function DonorDashboard() {
   const [selectedPosterUrl, setSelectedPosterUrl] = useState(''); // State for selected poster URL
   const [nearbyBloodNeeds, setNearbyBloodNeeds] = useState([]); // New state for nearby blood needs
   const [selectedMarker, setSelectedMarker] = useState(null); // New state for selected marker
+  
 
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: 'AIzaSyCykGquhe3x8hiwvFCGS6wXIDA-DQQFTH8', // Your Google Maps API Key. Consider using environment variables for security (e.env.REACT_APP_GOOGLE_MAPS_API_KEY)
-    libraries: ['places'], // Required for Geocoding
+    libraries, // Required for Geocoding
   });
 
   const filteredPatientRequests = useMemo(() => {
@@ -198,6 +204,7 @@ function DonorDashboard() {
     { id: 'profile', label: 'Profile' },
     { id: 'requests', label: 'Requests' },
     { id: 'campaign', label: 'Campaign' },
+    { id: 'uploadDetails', label: 'Upload Details' },
   ];
 
   return (
@@ -341,13 +348,20 @@ function DonorDashboard() {
                         )}
                       </td>
                     </tr>
-                  ))}}
+                  ))}
                 </tbody>
               </table>
             ) : (
               <p>No blood donation campaigns available at the moment.</p>
             )}
           </div>
+        )}
+      {selectedView === 'uploadDetails' && (
+          <UploadDetailsModal
+            onClose={() => setSelectedView('profile')} // Go back to profile after closing
+            currentAadhar={donorProfile?.aadharNumber}
+            currentBloodGroup={donorProfile?.bloodGroup}
+          />
         )}
       </div>
       {showPosterModal && (

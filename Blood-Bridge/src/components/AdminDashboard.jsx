@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { auth, db, storage } from '../firebase';
-import { collection, getDocs, query, where, addDoc } from 'firebase/firestore';
+import { collection, getDocs, query, where, addDoc, doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import AddCampaignModal from './AddCampaignModal';
+import EditCampaignModal from './EditCampaignModal';
 import '../styles/Dashboard.css';
 
 function AdminDashboard() {
@@ -15,7 +16,9 @@ function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedView, setSelectedView] = useState('donors');
-  const [showAddCampaignModal, setShowAddCampaignModal] = useState(false); // New state for modal
+  const [showAddCampaignModal, setShowAddCampaignModal] = useState(false);
+  const [showEditCampaignModal, setShowEditCampaignModal] = useState(false);
+  const [selectedCampaign, setSelectedCampaign] = useState(null);
   const navigate = useNavigate();
 
   // Filter states for donors
@@ -114,6 +117,36 @@ function AdminDashboard() {
     } catch (error) {
       console.error('Error adding campaign:', error);
       alert('Failed to add campaign.');
+    }
+  };
+
+  const handleEditCampaignClick = (campaign) => {
+    setSelectedCampaign(campaign);
+    setShowEditCampaignModal(true);
+  };
+
+  const handleUpdateCampaign = async ({ campaignId, campaignName, date, location, posterFile }) => {
+    try {
+      let posterURL = selectedCampaign.posterURL;
+      if (posterFile) {
+        const storageRef = ref(storage, `campaign_posters/${posterFile.name}`);
+        await uploadBytes(storageRef, posterFile);
+        posterURL = await getDownloadURL(storageRef);
+      }
+
+      const campaignRef = doc(db, 'campaigns', campaignId);
+      await updateDoc(campaignRef, {
+        name: campaignName,
+        date: date,
+        location: location,
+        posterURL: posterURL,
+      });
+
+      fetchData();
+      alert('Campaign updated successfully!');
+    } catch (error) {
+      console.error('Error updating campaign:', error);
+      alert('Failed to update campaign.');
     }
   };
 
@@ -235,8 +268,14 @@ function AdminDashboard() {
                       <td>{request.contact}</td>
                       <td>{request.status || 'Pending'}</td>
                       <td>
-                        <button onClick={() => handleApproveRequest(request.id)} disabled={request.status === 'approved'}>Approve</button>
-                        <button onClick={() => handleDeleteRequest(request.id)} style={{ marginLeft: '10px' }}>Delete</button>
+                        {request.status === 'accepted' || request.status === 'completed' ? (
+                          <span>Donated by: {request.donorName} from {request.donorLocation}</span>
+                        ) : (
+                          <>
+                            <button onClick={() => handleApproveRequest(request.id)} disabled={request.status === 'approved'}>Approve</button>
+                            <button onClick={() => handleDeleteRequest(request.id)} style={{ marginLeft: '10px' }}>Delete</button>
+                          </>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -251,7 +290,7 @@ function AdminDashboard() {
         {selectedView === 'campaigns' && (
           <div className="campaign-section">
             <h2>Manage Campaigns</h2>
-            <button className="primary-button" style={{ marginBottom: '20px' }} onClick={() => setShowAddCampaignModal(true)}>Add New Campaign</button>
+            <button className="primary-button" style={{ marginBottom: '20px' }} onClick={() => setShowAddCampaignModal(true)}>➕ Add New Campaign</button>
             {campaigns.length > 0 ? (
               <table className="donation-history-table">
                 <thead>
@@ -261,6 +300,7 @@ function AdminDashboard() {
                     <th>Location</th>
                     <th>Description</th>
                     <th>Poster</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -274,6 +314,14 @@ function AdminDashboard() {
                         {campaign.posterURL && (
                           <img src={campaign.posterURL} alt="Campaign Poster" style={{ width: '50px', height: '50px', objectFit: 'cover' }} />
                         )}
+                      </td>
+                      <td>
+                        <button
+                          onClick={() => handleEditCampaignClick(campaign)}
+                          style={{ backgroundColor: 'green', color: 'white', border: 'none', padding: '5px 10px', cursor: 'pointer' }}
+                        >
+                          ✏️ Edit
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -290,6 +338,13 @@ function AdminDashboard() {
         <AddCampaignModal
           onClose={() => setShowAddCampaignModal(false)}
           onSave={handleAddCampaign}
+        />
+      )}
+      {showEditCampaignModal && (
+        <EditCampaignModal
+          campaign={selectedCampaign}
+          onClose={() => setShowEditCampaignModal(false)}
+          onSave={handleUpdateCampaign}
         />
       )}
     </div>
