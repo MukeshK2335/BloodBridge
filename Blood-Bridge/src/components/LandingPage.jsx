@@ -1,8 +1,9 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import '../App.css';
 
 function LandingPage() {
+  const navigate = useNavigate();
   return (
     <div className="app-container">
       {/* Navigation Bar */}
@@ -25,7 +26,7 @@ function LandingPage() {
           <h1>Connect. Donate. Save Lives.</h1>
           <p>Join our community of blood donors and help save lives in your area.</p>
           <div className="hero-buttons">
-            <button className="donate-btn">Donate Now</button>
+            <button className="donate-btn" onClick={() => navigate('/login')}>Donate Now</button>
           </div>
         </div>
       </section>
