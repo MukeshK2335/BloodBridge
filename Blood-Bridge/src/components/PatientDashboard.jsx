@@ -8,6 +8,7 @@ import '../styles/Dashboard.css'; // Reusing dashboard styles
 import profileImage from '../assets/image.png'; // Assuming you have a default profile image
 import { GoogleMap, useLoadScript, Marker } from '@react-google-maps/api';
 import BloodHeatMap from './BloodHeatMap'; // Import BloodHeatMap
+import EditPatientProfileModal from './EditPatientProfileModal';
 
 const mapContainerStyle = {
   width: '100%',
@@ -30,6 +31,7 @@ function PatientDashboard() {
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
   const [selectedView, setSelectedView] = useState('profile'); // New state for selected view
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
 
   const navigate = useNavigate(); // Initialize useNavigate
 
@@ -55,46 +57,46 @@ function PatientDashboard() {
     return () => unsubscribe();
   }, []);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (user) {
-        try {
-          // Fetch Patient Profile
-          const userDocRef = doc(db, 'users', user.uid);
-          const userDocSnap = await getDoc(userDocRef);
-          if (userDocSnap.exists()) {
-            setPatientProfile(userDocSnap.data());
-          }
-
-          // Fetch Patient's Own Requests
-          const q = query(collection(db, 'requests'), where('patientId', '==', user.uid));
-          const querySnapshot = await getDocs(q);
-          const allRequests = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          
-          // Separate requests into pending, accepted, and completed
-          const pending = allRequests.filter(req => req.status === 'pending');
-          const accepted = allRequests.filter(req => req.status === 'accepted');
-          const completed = allRequests.filter(req => req.status === 'completed');
-
-          setPendingRequests(pending); // Keep pending for now, will rename later
-          setAcceptedRequests(accepted);
-          setMySubmittedRequests([...pending, ...completed]); // Combine pending and completed for display
-
-          // Fetch all donors
-          const donorsQuery = query(collection(db, 'users'), where('userType', '==', 'donor'));
-          const donorsSnapshot = await getDocs(donorsQuery);
-          const donorsData = donorsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          setAllDonorLocations(donorsData); // Store raw donor data for geocoding
-
-        } catch (err) {
-          console.error("Error fetching data:", err);
-          setError('Failed to fetch data.');
-        } finally {
-          setLoading(false);
+  const fetchData = async () => {
+    if (user) {
+      try {
+        // Fetch Patient Profile
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDocSnap = await getDoc(userDocRef);
+        if (userDocSnap.exists()) {
+          setPatientProfile(userDocSnap.data());
         }
-      }
-    };
 
+        // Fetch Patient's Own Requests
+        const q = query(collection(db, 'requests'), where('patientId', '==', user.uid));
+        const querySnapshot = await getDocs(q);
+        const allRequests = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // Separate requests into pending, accepted, and completed
+        const pending = allRequests.filter(req => req.status === 'pending');
+        const accepted = allRequests.filter(req => req.status === 'accepted');
+        const completed = allRequests.filter(req => req.status === 'completed');
+
+        setPendingRequests(pending);
+        setAcceptedRequests(accepted);
+        setMySubmittedRequests([...pending, ...completed]);
+
+        // Fetch all donors
+        const donorsQuery = query(collection(db, 'users'), where('userType', '==', 'donor'));
+        const donorsSnapshot = await getDocs(donorsQuery);
+        const donorsData = donorsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setAllDonorLocations(donorsData);
+
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        setError('Failed to fetch data.');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, [user]);
 
@@ -395,6 +397,7 @@ function PatientDashboard() {
                   <p>Email: {patientProfile.email}</p>
                   <p>Phone: {patientProfile.phoneNumber}</p>
                   <p>Location: {patientProfile.location}</p>
+                  <button onClick={() => setShowEditProfileModal(true)} className="primary-button">Edit Profile</button>
                 </div>
               </div>
             ) : (
@@ -536,6 +539,13 @@ function PatientDashboard() {
           </div>
         )}
       </div>
+      {showEditProfileModal && (
+        <EditPatientProfileModal
+          patientProfile={patientProfile}
+          onClose={() => setShowEditProfileModal(false)}
+          onSave={fetchData}
+        />
+      )}
     </div>
   );
 }

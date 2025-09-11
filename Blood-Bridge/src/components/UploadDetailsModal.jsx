@@ -1,14 +1,29 @@
 import React, { useState } from 'react';
-import { db, auth } from '../firebase';
+import { db, auth, storage } from '../firebase';
 import { doc, updateDoc } from 'firebase/firestore';
-import '../styles/Modal.css'; // Assuming you have a Modal.css for basic modal styling
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import '../styles/Modal.css';
 
 function UploadDetailsModal({ onClose, currentAadhar, currentBloodGroup }) {
   const [aadharDetails, setAadharDetails] = useState(currentAadhar || '');
   const [bloodGroup, setBloodGroup] = useState(currentBloodGroup || '');
+  const [aadharFile, setAadharFile] = useState(null);
+  const [bloodGroupFile, setBloodGroupFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+
+  const handleAadharFileChange = (e) => {
+    if (e.target.files[0]) {
+      setAadharFile(e.target.files[0]);
+    }
+  };
+
+  const handleBloodGroupFileChange = (e) => {
+    if (e.target.files[0]) {
+      setBloodGroupFile(e.target.files[0]);
+    }
+  };
 
   const handleSaveDetails = async () => {
     if (!aadharDetails || !bloodGroup) {
@@ -23,15 +38,37 @@ function UploadDetailsModal({ onClose, currentAadhar, currentBloodGroup }) {
     try {
       const user = auth.currentUser;
       if (user) {
+        let aadharFileURL = '';
+        if (aadharFile) {
+          const aadharRef = ref(storage, `user_documents/${user.uid}/aadhar_${aadharFile.name}`);
+          await uploadBytes(aadharRef, aadharFile);
+          aadharFileURL = await getDownloadURL(aadharRef);
+        }
+
+        let bloodGroupFileURL = '';
+        if (bloodGroupFile) {
+          const bloodGroupRef = ref(storage, `user_documents/${user.uid}/bloodGroup_${bloodGroupFile.name}`);
+          await uploadBytes(bloodGroupRef, bloodGroupFile);
+          bloodGroupFileURL = await getDownloadURL(bloodGroupRef);
+        }
+
         const userDocRef = doc(db, 'users', user.uid);
-        await updateDoc(userDocRef, {
+        const dataToUpdate = {
           aadharNumber: aadharDetails,
           bloodGroup: bloodGroup,
-        });
+        };
+
+        if (aadharFileURL) {
+          dataToUpdate.aadharDocumentUrl = aadharFileURL;
+        }
+
+        if (bloodGroupFileURL) {
+          dataToUpdate.bloodGroupDocumentUrl = bloodGroupFileURL;
+        }
+
+        await updateDoc(userDocRef, dataToUpdate);
         setSuccess(true);
-        // Optionally, you can call a prop function here to refresh donor profile in parent
-        // For now, just close the modal after a short delay
-        setTimeout(onClose, 1500); 
+        setTimeout(onClose, 1500);
       } else {
         setError('User not authenticated.');
       }
@@ -61,6 +98,15 @@ function UploadDetailsModal({ onClose, currentAadhar, currentBloodGroup }) {
           />
         </div>
         <div className="form-group">
+          <label htmlFor="aadharFile">Upload Aadhar Document:</label>
+          <input
+            type="file"
+            id="aadharFile"
+            onChange={handleAadharFileChange}
+            disabled={loading}
+          />
+        </div>
+        <div className="form-group">
           <label htmlFor="bloodGroup">Blood Group:</label>
           <select
             id="bloodGroup"
@@ -78,6 +124,15 @@ function UploadDetailsModal({ onClose, currentAadhar, currentBloodGroup }) {
             <option value="O+">O+</option>
             <option value="O-">O-</option>
           </select>
+        </div>
+        <div className="form-group">
+          <label htmlFor="bloodGroupFile">Upload Blood Group Document:</label>
+          <input
+            type="file"
+            id="bloodGroupFile"
+            onChange={handleBloodGroupFileChange}
+            disabled={loading}
+          />
         </div>
         <div className="modal-actions">
           <button onClick={handleSaveDetails} disabled={loading} className="primary-button">

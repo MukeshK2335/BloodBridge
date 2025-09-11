@@ -223,6 +223,7 @@ function AdminDashboard() {
                         style={{ width: '90%', padding: '5px', marginTop: '5px' }}
                       />
                     </th>
+                    <th>Documents</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -232,6 +233,18 @@ function AdminDashboard() {
                       <td>{donor.email}</td>
                       <td>{donor.bloodGroup || 'N/A'}</td>
                       <td>{donor.location}</td>
+                      <td>
+                        {donor.aadharDocumentUrl && (
+                          <a href={donor.aadharDocumentUrl} target="_blank" rel="noopener noreferrer">
+                            <button>👁️ View Aadhar</button>
+                          </a>
+                        )}
+                        {donor.bloodGroupDocumentUrl && (
+                          <a href={donor.bloodGroupDocumentUrl} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '10px' }}>
+                            <button>👁️ View Blood Group</button>
+                          </a>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
