@@ -410,6 +410,34 @@ function PatientDashboard() {
             ) : (
               <p>No profile data available.</p>
             )}
+
+            <div className="forms-section" style={{ marginTop: '30px' }}>
+              <h2>Important Forms</h2>
+              <table className="donation-history-table"> {/* Reusing table style */}
+                <thead>
+                  <tr>
+                    <th>S.No</th>
+                    <th>Form No</th>
+                    <th>Description</th>
+                    <th>Download</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td>FORM-001</td>
+                    <td>Blood Donation Consent Form</td>
+                    <td><a href="https://drive.google.com/file/d/1m6JznvCG44eyXfx0SoxNoxYQ4H7IJKSU/view?usp=sharing" target="_blank" rel="noopener noreferrer"><button className="primary-button">Download</button></a></td>
+                  </tr>
+                  <tr>
+                    <td>2</td>
+                    <td>FORM-002</td>
+                    <td>Organ Or Tissuse Donation</td>
+                    <td><a href="https://drive.google.com/file/d/1KQV_khyijG7sipRgbV8CxpW8fEPdVtm0/view?usp=sharing" target="_blank" rel="noopener noreferrer"><button className="primary-button">Download</button></a></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 

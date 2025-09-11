@@ -321,8 +321,6 @@ function DonorDashboard() {
                     <th>Campaign Name</th>
                     <th>Date</th>
                     <th>Location</th>
-                    <th>Segmented</th>
-                    <th>Description</th>
                     <th>Poster</th>
                   </tr>
                 </thead>
@@ -332,20 +330,13 @@ function DonorDashboard() {
                       <td>{campaign.name}</td>
                       <td>{campaign.date}</td>
                       <td>{campaign.location}</td>
-                      <td>{campaign.segmented || 'N/A'}</td>
-                      <td>{campaign.description}</td>
                       <td>
-                        {campaign.posterURL && (
-                          <img src={campaign.posterURL} alt={campaign.name} className="campaign-poster-thumbnail" />
-                        )}
-                        {campaign.posterURL && (
-                          <button
-                            className="primary-button"
-                            onClick={() => handleViewPoster(campaign.posterURL)}
-                          >
-                            View Poster
-                          </button>
-                        )}
+                        <button
+                          className="primary-button"
+                          onClick={() => handleViewPoster(campaign.posterURL)}
+                        >
+                          View Poster
+                        </button>
                       </td>
                     </tr>
                   ))}

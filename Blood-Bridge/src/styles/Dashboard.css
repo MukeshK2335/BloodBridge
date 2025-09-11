@@ -1,78 +1,7 @@
-.dashboard-container {
-  display: flex;
-  min-height: 100vh; /* Allow container to grow with content */
-}
-
-.main-content {
-  flex-grow: 1;
-  padding: 20px;
-  overflow-y: auto; /* Enable scrolling for content */
-}
-
-.profile-section {
-  background-color: #f9f9f9;
-  border-radius: 10px;
-  padding: 30px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  text-align: center;
-}
-
-.profile-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.profile-avatar img {
-  width: 150px;
-  height: 150px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 4px solid #ff416c;
-  margin-bottom: 20px;
-}
-
-.profile-details h3 {
-  margin-top: 0;
-  font-size: 1.8em;
-  color: #333;
-}
-
-.profile-details p {
-  margin: 8px 0;
-  font-size: 1.1em;
-  color: #555;
-}
-
-.profile-details strong {
-  color: #ff416c;
-}
-
-.donation-history-section {
-  margin-top: 30px;
-  text-align: left;
-  border-top: 1px solid #eee;
-  padding-top: 20px;
-}
-
-.donation-history-section h3 {
-  text-align: center;
-  color: #333;
-  margin-bottom: 20px;
-}
-
-.donation-history-section ul {
-  list-style-type: none;
+html, body {
+  margin: 0;
   padding: 0;
-}
-
-.donation-history-section li {
-  background-color: #fff;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 15px;
-  margin-bottom: 10px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-sizing: border-box;
 }
 
 .dashboard-container {
@@ -92,12 +21,28 @@
   padding: 30px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   text-align: center;
+  max-width: 90%; /* Changed from 1200px */
+  margin: 20px auto;
 }
 
 .profile-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  display: flex; /* Change to flex */
+  flex-direction: column; /* Default to column for small screens */
+  align-items: center; /* Center items vertically */
+  gap: 30px; /* Space between avatar and details */
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  margin-bottom: 30px; /* Space below the card */
+}
+
+@media (min-width: 768px) { /* Apply flex row on larger screens */
+  .profile-card {
+    flex-direction: row;
+    justify-content: center; /* Center horizontally */
+    align-items: flex-start; /* Align items to the start of the cross axis */
+  }
 }
 
 .profile-avatar img {
@@ -106,23 +51,25 @@
   border-radius: 50%;
   object-fit: cover;
   border: 4px solid #ff416c;
-  margin-bottom: 20px;
+  /* margin-bottom: 20px; */ /* Remove this, gap will handle spacing */
+}
+
+.profile-details {
+  text-align: left; /* Align text to left within details */
 }
 
 .profile-details h3 {
   margin-top: 0;
   font-size: 1.8em;
   color: #333;
+  margin-bottom: 15px; /* Add some space below name */
 }
 
 .profile-details p {
   margin: 8px 0;
   font-size: 1.1em;
   color: #555;
-}
-
-.profile-details strong {
-  color: #ff416c;
+  line-height: 1.5; /* Improve readability */
 }
 
 .donation-history-section {
@@ -163,16 +110,6 @@
   text-align: center;
   color: #333;
   margin-bottom: 20px;
-}
-
-.profile-section {
-  background-color: #f9f9f9;
-  border-radius: 10px;
-  padding: 30px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  text-align: center;
-  max-width: 900px;
-  margin: 20px auto;
 }
 
 .requests-section {
@@ -216,12 +153,14 @@
 .donor-dashboard-content {
   flex-grow: 1;
   padding: 0px;
+  margin-left: 250px;
 }
 
 .donation-history-table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
+  table-layout: fixed; /* Add this */
 }
 
 .donation-history-table th,
@@ -229,6 +168,7 @@
   border: 1px solid #ddd;
   padding: 8px;
   text-align: left;
+  word-wrap: break-word; /* Add this */
 }
 
 .donation-history-table th {
@@ -287,4 +227,30 @@
   color: #333;
 }
 
+.campaigns-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  table-layout: fixed;
+}
 
+.campaigns-table th,
+.campaigns-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+  word-wrap: break-word;
+}
+
+.campaigns-table th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+}
+
+.campaigns-table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.campaigns-table tr:hover {
+  background-color: #ddd;
+}
