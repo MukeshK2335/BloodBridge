@@ -9,6 +9,7 @@ import profileImage from '../assets/image.png'; // Assuming you have a default p
 import { GoogleMap, useLoadScript, Marker } from '@react-google-maps/api';
 import BloodHeatMap from './BloodHeatMap'; // Import BloodHeatMap
 import EditPatientProfileModal from './EditPatientProfileModal';
+import OrganRequestModal from './OrganRequestModal';
 
 const mapContainerStyle = {
   width: '100%',
@@ -32,6 +33,7 @@ function PatientDashboard() {
   const [user, setUser] = useState(null);
   const [selectedView, setSelectedView] = useState('profile'); // New state for selected view
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [showOrganRequestModal, setShowOrganRequestModal] = useState(false);
 
   const navigate = useNavigate(); // Initialize useNavigate
 
@@ -168,8 +170,12 @@ function PatientDashboard() {
   const handleSelectView = (view) => {
     if (view === 'donor-view') {
       navigate('/donor-dashboard'); // Navigate to donor dashboard
+    } else if (view === 'organ-request') {
+      setShowOrganRequestModal(true);
+      setSelectedView(view);
     } else {
       setSelectedView(view);
+      setShowOrganRequestModal(false);
     }
   };
 
@@ -377,8 +383,9 @@ function PatientDashboard() {
 
   const patientMenuItems = [
     { id: 'profile', label: 'Profile' },
-    { id: 'requests', label: 'My Requests' }, // Added Donor View
+    { id: 'requests', label: 'My Requests' },
     { id: 'heatmap', label: 'Donar View' },
+    { id: 'organ-request', label: 'Raise Organ Request' }, // New item
   ];
 
   return (
@@ -544,6 +551,14 @@ function PatientDashboard() {
           patientProfile={patientProfile}
           onClose={() => setShowEditProfileModal(false)}
           onSave={fetchData}
+        />
+      )}
+      {selectedView === 'organ-request' && showOrganRequestModal && (
+        <OrganRequestModal
+          onClose={() => {
+            setShowOrganRequestModal(false);
+            setSelectedView('profile'); // Optionally go back to profile view after closing
+          }}
         />
       )}
     </div>

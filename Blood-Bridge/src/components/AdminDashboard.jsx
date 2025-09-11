@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { auth, db, storage } from '../firebase';
-import { collection, getDocs, query, where, addDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, query, where, addDoc, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
@@ -13,6 +13,7 @@ function AdminDashboard() {
   const [donors, setDonors] = useState([]);
   const [requests, setRequests] = useState([]);
   const [campaigns, setCampaigns] = useState([]);
+  const [organRequests, setOrganRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedView, setSelectedView] = useState('donors');
@@ -58,6 +59,18 @@ function AdminDashboard() {
       const campaignsSnapshot = await getDocs(campaignsCollection);
       const campaignsList = campaignsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setCampaigns(campaignsList);
+
+      const organRequestsCollection = collection(db, 'organRequests');
+      const organRequestsSnapshot = await getDocs(organRequestsCollection);
+      const organRequestsList = await Promise.all(organRequestsSnapshot.docs.map(async (docItem) => {
+        const data = docItem.data();
+        console.log("Organ Request Data:", data); // Add this line for debugging
+        const userDocRef = doc(db, 'users', data.userId);
+        const userDocSnap = await getDoc(userDocRef);
+        const userName = userDocSnap.exists() ? userDocSnap.data().name : 'Unknown User';
+        return { id: docItem.id, userName, ...data };
+      }));
+      setOrganRequests(organRequestsList);
 
     } catch (err) {
       console.error("Error fetching admin data:", err);
@@ -162,6 +175,7 @@ function AdminDashboard() {
     { id: 'donors', label: 'Donors' },
     { id: 'requests', label: 'Requests' },
     { id: 'campaigns', label: 'Campaigns' },
+    { id: 'organ-requests', label: 'Organ Requests' },
   ];
 
   return (
@@ -359,6 +373,41 @@ function AdminDashboard() {
           onClose={() => setShowEditCampaignModal(false)}
           onSave={handleUpdateCampaign}
         />
+      )}
+      {selectedView === 'organ-requests' && (
+        <div className="organ-requests-section">
+          <h2>All Organ Requests</h2>
+          {organRequests.length > 0 ? (
+            <table className="donation-history-table">
+              <thead>
+                <tr>
+                  <th>User Name</th>
+                  <th>Organ Type</th>
+                  <th>Blood Group</th>
+                  <th>Hospital</th>
+                  <th>Contact</th>
+                  <th>Status</th>
+                  {/* Add more headers as needed */}
+                </tr>
+              </thead>
+              <tbody>
+                {organRequests.map((request) => (
+                  <tr key={request.id}>
+                    <td>{request.userName}</td>
+                    <td>{request.organType || 'N/A'}</td>
+                    <td>{request.bloodGroup || 'N/A'}</td>
+                    <td>{request.hospital || 'N/A'}</td>
+                    <td>{request.contact || 'N/A'}</td>
+                    <td>{request.status || 'Pending'}</td>
+                    {/* Add more data cells as needed */}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p>No organ requests found.</p>
+          )}
+        </div>
       )}
     </div>
   );
